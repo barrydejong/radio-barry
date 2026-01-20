@@ -1758,13 +1758,12 @@
     async function prevStation() {
       idx = (idx - 1 + stations.length) % stations.length;
       stepFeedback();
-      await loadCurrent(isPlaying);
-    }
+      await loadCurrent(isAnythingPlaying());
 
     async function nextStation() {
       idx = (idx + 1) % stations.length;
       stepFeedback();
-      await loadCurrent(isPlaying);
+      await loadCurrent(isAnythingPlaying());
     }
 
     /* ====== Play/Pause/Stop ====== */
@@ -1861,7 +1860,7 @@
       if (!dragging) return;
       dragging = false;
       stepFeedback();
-      await loadCurrent(isPlaying);
+      await loadCurrent(isAnythingPlaying());
     });
 
     el.dialTrack.addEventListener("pointercancel", () => {
