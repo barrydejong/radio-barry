@@ -1747,23 +1747,21 @@
       refreshInfo(true);
 
       if (shouldPlay) {
-        if (castSession) {
-          await castLoadCurrent();
-        } else {
-          try { await audio.play(); } catch {}
-        }
+        try { await audio.play(); } catch {}
       }
+    }
 
     /* ====== Prev/Next ====== */
     async function prevStation() {
       idx = (idx - 1 + stations.length) % stations.length;
       stepFeedback();
-      await loadCurrent(isAnythingPlaying());
+      await loadCurrent(isPlaying);
+    }
 
     async function nextStation() {
       idx = (idx + 1) % stations.length;
       stepFeedback();
-      await loadCurrent(isAnythingPlaying());
+      await loadCurrent(isPlaying);
     }
 
     /* ====== Play/Pause/Stop ====== */
@@ -1771,11 +1769,7 @@
       closeAllDrops();
 
       if (castSession) {
-        try{
-          if (remoteController) remoteController.playOrPause();
-        }catch{
-          setStatus("cast fout");
-        }
+        setStatus("cast niet beschikbaar");
         return;
       }
 
@@ -1805,13 +1799,7 @@
       closeAllDrops();
 
       if (castSession) {
-        try{
-          const media = castSession.getMediaSession();
-          if (media) media.stop(null, ()=>{}, ()=>{});
-          setStatus("cast gestopt");
-        }catch{
-          setStatus("cast fout");
-        }
+        setStatus("cast niet beschikbaar");
         return;
       }
 
@@ -1860,7 +1848,7 @@
       if (!dragging) return;
       dragging = false;
       stepFeedback();
-      await loadCurrent(isAnythingPlaying());
+      await loadCurrent(isPlaying);
     });
 
     el.dialTrack.addEventListener("pointercancel", () => {
@@ -2062,4 +2050,4 @@
   })();
   </script>
 </body>
-</html>
+            </html>
