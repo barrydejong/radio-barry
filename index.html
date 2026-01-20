@@ -75,7 +75,24 @@
       gap:14px;
       align-items:stretch;
     }
+    
+    .deck{
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+      align-items:stretch;
+    }
 
+    @media (min-width: 980px){
+      :root{ --uiW: 980px; }
+      .deck{
+        display:grid;
+        grid-template-columns: 1.05fr 0.95fr;
+        gap:14px;
+        align-items:start;
+      }
+    }
+    
     .topbar{
       display:flex;
       align-items:center;
@@ -706,7 +723,8 @@
       <div class="title">Radio Tuner Online</div>
     </div>
 
-    <div class="card">
+    <div class="deck">
+      <div class="card leftCard">
       <div class="hero">
         <div class="freqRow">
           <div class="freq" id="freqBig">98.9</div>
@@ -819,9 +837,9 @@
           <div>Status:</div>
           <div class="statusValue" id="statusText">gepauzeerd</div>
         </div>
-      </div>
-
-      <div class="lists">
+      
+      <div class="card rightCard">
+        <div class="lists">
         <div>
           <div class="sectionTitle">
             <span>Favorieten</span>
@@ -839,6 +857,8 @@
           </div>
           <div class="list" id="stationList" style="margin-top:10px"></div>
         </div>
+      </div>
+    </div></div>
       </div>
     </div>
   </div>
