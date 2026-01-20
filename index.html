@@ -765,7 +765,7 @@
             </div>
 
             <div class="marks" aria-hidden="true">
-              <div>88</div><div>94</div><div>101</div><div>107</div>
+              <div>1</div><div>2</div><div>3</div><div>4</div>
             </div>
 
             <div class="dialHint">Tip: horizontaal slepen op de tuner kiest zender. Verticaal swipen blijft gewoon scrollen.</div>
@@ -1519,7 +1519,9 @@
 
         const fBox = document.createElement("div");
         fBox.className = "fBox";
-        fBox.textContent = s.f.toFixed(1);
+        const n = stations.findIndex(x => x.f === s.f) + 1;
+        fBox.textContent = String(n);
+        fBox.title = `${s.f.toFixed(1)} MHz`;
 
         const mid = document.createElement("div");
         mid.className = "rowMid";
