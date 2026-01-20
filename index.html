@@ -1,4 +1,4 @@
-<!doctype html>
+9<!doctype html>
 <html lang="nl">
 <head>
   <meta charset="utf-8" />
@@ -728,7 +728,7 @@
       <div class="hero">
         <div class="freqRow">
           <div class="freq" id="freqBig">98.9</div>
-          <div class="mhz">MHz</div>
+          <div class="mhz"></div>)
         </div>
 
         <div class="stationRow">
@@ -917,8 +917,8 @@
     ];
 
     /* ====== State ====== */
-    const minF = 87.0, maxF = 108.0;
-    let idx = Math.max(0, stations.findIndex(s => s.f === 98.9));
+    const minF = 1, maxF = 10;
+    let idx = 0;
     let isPlaying = false;
 
     const resolved = new Map();
@@ -1155,7 +1155,7 @@
 
     function renderHeader(){
       const s = currentStation();
-      el.freqBig.textContent = s.f.toFixed(1);
+      el.freqBig.textContent = String(s.f);
       el.stationName.textContent = s.name;
       el.stationSub.textContent = s.place;
       setLogoForStation(s);
@@ -1531,7 +1531,7 @@
         fBox.className = "fBox";
         const n = stations.findIndex(x => x.f === s.f) + 1;
         fBox.textContent = String(n);
-        fBox.title = `${s.f.toFixed(1)} MHz`;
+        fBox.title = `Zender ${s.f}`;
 
         const mid = document.createElement("div");
         mid.className = "rowMid";
