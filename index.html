@@ -876,36 +876,44 @@
 
     /* ====== Zenders ====== */
     const stations = [
-      { f: 88.6, name: "Groot Nieuws Radio", place: "Online", query: "Groot Nieuws Radio", logo: "logos/groot-nieuws-radio.png",
+      { f: 1, name: "Groot Nieuws Radio", place: "Online", query: "Groot Nieuws Radio", logo: "logos/groot-nieuws-radio.png",
         fixedStreams: [
           { url: "https://playerservices.streamtheworld.com/api/livestream-redirect/GNR.mp3", bitrate: 128, codec: "MP3" },
           { url: "https://playerservices.streamtheworld.com/api/livestream-redirect/GNRAAC.aac", bitrate: 128, codec: "AAC" }
         ]
       },
-      { f: 89.2, name: "Groot Nieuws Radio Nonstop", place: "Online", query: "Groot Nieuws Radio Nonstop", logo: "logos/groot-nieuws-radio.png",
+      { f: 2, name: "Groot Nieuws Radio Nonstop", place: "Online", query: "Groot Nieuws Radio Nonstop", logo: "logos/groot-nieuws-radio.png",
         fixedStreams: [
           { url: "https://playerservices.streamtheworld.com/api/livestream-redirect/GNRNONSTOP.mp3", bitrate: 128, codec: "MP3" },
           { url: "https://playerservices.streamtheworld.com/api/livestream-redirect/GNRNONSTOPAAC.aac", bitrate: 128, codec: "AAC" }
         ]
       },
       {
-        f: 90.0,
+        f: 3,
         name: "Pure Worship Radio",
         place: "Online",
         query: "Pure Worship Radio",
         logo: "logos/pure-worship-radio.png",
         fixedStreams: [
-          { url: "http://perseus.shoutca.st:9667/stream", bitrate: 128, codec: "MP3" },
-          { url: "http://192.99.17.104:9667/stream", bitrate: 128, codec: "MP3" }
+          { url: "http://perseus.shoutca.st:9667/stream", bitrate: 128, codec: "MP3" }
         ]
       },
-      { f: 90.8, name: "GOD Radio", place: "Online", query: "GOD Radio", logo: "logos/god-radio.png" },
-      { f: 95.6, name: "Bright FM", place: "Online", query: "Bright FM", logo: "logos/bright-fm.png" },
-      { f: 96.5, name: "Christian Power Praise", place: "Online", query: "Christian Power Praise", logo: "logos/christian-power-praise.png" },
-      { f: 98.9, name: "NPO Radio 1", place: "IJsselstein", query: "NPO Radio 1", logo: "logos/npo-radio-1.png" },
-      { f: 102.4, name: "Seven FM", place: "Online", query: "Seven FM", logo: "logos/seven-fm.png" },
-      { f: 107.2, name: "UCB1", place: "Online", query: "UCB1", logo: "logos/ucb1.png" },
-      { f: 107.8, name: "UCB2", place: "Online", query: "UCB2", logo: "logos/ucb2.png" },
+      {
+        f: 4,
+        name: "GOD Radio",
+        place: "Online",
+        query: "GOD Radio",
+        logo: "logos/god-radio.png",
+        fixedStreams: [
+          { url: "https://stream.wildfm.nl/GOD_Radio", bitrate: 128, codec: "MP3" }
+        ]
+      },
+      { f: 5, name: "Bright FM", place: "Online", query: "Bright FM", logo: "logos/bright-fm.png" },
+      { f: 6, name: "Christian Power Praise", place: "Online", query: "Christian Power Praise", logo: "logos/christian-power-praise.png" },
+      { f: 7, name: "NPO Radio 1", place: "IJsselstein", query: "NPO Radio 1", logo: "logos/npo-radio-1.png" },
+      { f: 8, name: "Seven FM", place: "Online", query: "Seven FM", logo: "logos/seven-fm.png" },
+      { f: 9, name: "UCB1", place: "Online", query: "UCB1", logo: "logos/ucb1.png" },
+      { f: 10, name: "UCB2", place: "Online", query: "UCB2", logo: "logos/ucb2.png" },
     ];
 
     /* ====== State ====== */
