@@ -1694,14 +1694,13 @@
           openDrop(s.f);
         });
 
-        // BONUS: tik op logo mag ook dropdown openen (jij zei dat je vooral op logo tikt)
-        rLogo.addEventListener("click", (e) => {
+        // Tik op logo = zender kiezen + meteen afspelen
+        rLogo.addEventListener("click", async (e) => {
           e.stopPropagation();
-          const rr = resolved.get(s.f);
-          if (!rr) return;
-
-          rebuildDrop();
-          openDrop(s.f);
+          closeAllDrops();
+          idx = Math.max(0, stations.findIndex(x => x.f === s.f));
+          renderHeader();
+          await loadCurrent(true);
         });
 
         close.addEventListener("click", (e) => {
