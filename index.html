@@ -1855,13 +1855,163 @@
       dragging = false;
     });
 
-    /* ====== Cast (simpel: melding als niet beschikbaar) ====== */
+    /* ====== Cast (Chromecast / Google Home) ====== */
     let castSession = null;
     let castIsPlaying = false;
+    let castReady = false;
 
-    el.btnCast.addEventListener("click", () => {
-      setStatus("cast niet beschikbaar");
-    });
+    let castContext = null;
+    let remotePlayer = null;
+    let remoteController = null;
+
+    function absUrl(u){
+      try{ return new URL(u, location.href).href; }catch{ return u; }
+    }
+
+    function guessContentType(url, codec){
+      const c = (codec || "").toUpperCase();
+      if (c.includes("AAC")) return "audio/aac";
+      if (c.includes("MP3") || c.includes("MPEG")) return "audio/mpeg";
+
+      const lower = (url || "").toLowerCase();
+      if (lower.includes(".aac")) return "audio/aac";
+      if (lower.includes(".m4a")) return "audio/mp4";
+      if (lower.includes(".mp3")) return "audio/mpeg";
+      return "audio/mpeg";
+    }
+
+    function syncCastState(){
+      if (!remotePlayer || !remotePlayer.isConnected){
+        castIsPlaying = false;
+        el.btnCast.classList.remove("on");
+        updatePlayIcon();
+        return;
+      }
+      castIsPlaying = !remotePlayer.isPaused;
+      el.btnCast.classList.add("on");
+      updatePlayIcon();
+      setStatus(castIsPlaying ? "cast speelt" : "cast gepauzeerd");
+    }
+
+    async function castLoadCurrent(){
+      const s = currentStation();
+      await resolveStation(s);
+
+      const r = resolved.get(s.f);
+      const pickedUrl = r ? (r.selectedUrl || r.bestUrl || "") : "";
+      if (!pickedUrl){
+        setStatus("geen stream");
+        return;
+      }
+
+      const streams = r ? (r.streams || []) : [];
+      const pickedObj = streams.find(x => x.url === pickedUrl) || null;
+
+      const playable = toPlayableUrl(pickedUrl);
+      const absolute = absUrl(playable);
+      const ct = guessContentType(pickedUrl, pickedObj ? pickedObj.codec : "");
+
+      try{
+        // Stop lokale audio om dubbel geluid te voorkomen
+        try{ audio.pause(); }catch{}
+        isPlaying = false;
+
+        const session = castContext.getCurrentSession();
+        castSession = session;
+
+        const mediaInfo = new chrome.cast.media.MediaInfo(absolute, ct);
+        const md = new chrome.cast.media.MusicTrackMediaMetadata();
+        md.title = s.name;
+        md.artist = s.place || "";
+        mediaInfo.metadata = md;
+
+        const req = new chrome.cast.media.LoadRequest(mediaInfo);
+        req.autoplay = true;
+
+        await session.loadMedia(req);
+
+        el.btnCast.classList.add("on");
+        setStatus("cast speelt");
+      }catch{
+        setStatus("cast fout");
+      }
+    }
+
+    async function startOrStopCast(){
+      if (!castReady || !castContext){
+        setStatus("cast niet beschikbaar");
+        return;
+      }
+
+      const state = castContext.getSessionState();
+      const hasSession =
+        state === cast.framework.SessionState.SESSION_STARTED ||
+        state === cast.framework.SessionState.SESSION_RESUMED;
+
+      if (hasSession){
+        try{ castContext.endCurrentSession(true); }catch{}
+        return;
+      }
+
+      try{
+        await castContext.requestSession();
+        castSession = castContext.getCurrentSession();
+        await castLoadCurrent();
+      }catch{
+        setStatus("cast geannuleerd");
+      }
+    }
+
+    function initCast(){
+      try{
+        castContext = cast.framework.CastContext.getInstance();
+        castContext.setOptions({
+          receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
+          autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
+        });
+
+        remotePlayer = new cast.framework.RemotePlayer();
+        remoteController = new cast.framework.RemotePlayerController(remotePlayer);
+
+        castReady = true;
+
+        castContext.addEventListener(
+          cast.framework.CastContextEventType.SESSION_STATE_CHANGED,
+          (e) => {
+            castSession = castContext.getCurrentSession();
+
+            if (e.sessionState === cast.framework.SessionState.SESSION_ENDED){
+              castSession = null;
+              castIsPlaying = false;
+              el.btnCast.classList.remove("on");
+              updatePlayIcon();
+              setStatus("gepauzeerd");
+              return;
+            }
+
+            syncCastState();
+          }
+        );
+
+        remoteController.addEventListener(
+          cast.framework.RemotePlayerEventType.IS_PAUSED_CHANGED,
+          syncCastState
+        );
+        remoteController.addEventListener(
+          cast.framework.RemotePlayerEventType.IS_CONNECTED_CHANGED,
+          syncCastState
+        );
+      }catch{
+        castReady = false;
+      }
+    }
+
+    // Cast SDK callback (wordt aangeroepen door cast_sender.js)
+    window.__onGCastApiAvailable = (isAvailable) => {
+      if (isAvailable) initCast();
+    };
+
+    el.btnCast.addEventListener("click", startOrStopCast);
 
     /* ====== Buttons ====== */
     el.btnPrev.addEventListener("click", prevStation);
