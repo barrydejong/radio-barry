@@ -1769,7 +1769,11 @@
       closeAllDrops();
 
       if (castSession) {
-        setStatus("cast niet beschikbaar");
+        try{
+          if (remoteController) remoteController.playOrPause();
+        }catch{
+          setStatus("cast fout");
+        }
         return;
       }
 
@@ -1799,7 +1803,13 @@
       closeAllDrops();
 
       if (castSession) {
-        setStatus("cast niet beschikbaar");
+        try{
+          const media = castSession.getMediaSession();
+          if (media) media.stop(null, ()=>{}, ()=>{});
+          setStatus("cast gestopt");
+        }catch{
+          setStatus("cast fout");
+        }
         return;
       }
 
