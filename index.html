@@ -1747,9 +1747,12 @@
       refreshInfo(true);
 
       if (shouldPlay) {
-        try { await audio.play(); } catch {}
+        if (castSession) {
+          await castLoadCurrent();
+        } else {
+          try { await audio.play(); } catch {}
+        }
       }
-    }
 
     /* ====== Prev/Next ====== */
     async function prevStation() {
