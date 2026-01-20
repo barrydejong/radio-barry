@@ -1661,8 +1661,12 @@
               // Als dit de huidige station is: meteen toepassen
               if (currentStation().f === s.f) {
                 setAudioSrc(st.url);
-                if (isPlaying) {
-                  try { await audio.play(); } catch {}
+                if (isAnythingPlaying()) {
+                  if (castSession) {
+                    await castLoadCurrent();
+                  } else {
+                    try { await audio.play(); } catch {}
+                  }
                 }
                 refreshInfo(true);
               }
@@ -1715,7 +1719,7 @@
           closeAllDrops();
           idx = Math.max(0, stations.findIndex(x => x.f === s.f));
           renderHeader();
-          await loadCurrent(isPlaying);
+          await loadCurrent(true);
         });
 
         // Als streams later binnenkomen: update knop
@@ -1747,7 +1751,11 @@
       refreshInfo(true);
 
       if (shouldPlay) {
-        try { await audio.play(); } catch {}
+        if (castSession) {
+          await castLoadCurrent();
+        } else {
+          try { await audio.play(); } catch {}
+        }
       }
     }
 
@@ -1755,13 +1763,13 @@
     async function prevStation() {
       idx = (idx - 1 + stations.length) % stations.length;
       stepFeedback();
-      await loadCurrent(isPlaying);
+      await loadCurrent(isAnythingPlaying());
     }
 
     async function nextStation() {
       idx = (idx + 1) % stations.length;
       stepFeedback();
-      await loadCurrent(isPlaying);
+      await loadCurrent(isAnythingPlaying());
     }
 
     /* ====== Play/Pause/Stop ====== */
@@ -1769,7 +1777,11 @@
       closeAllDrops();
 
       if (castSession) {
-        setStatus("cast niet beschikbaar");
+        try{
+          if (remoteController) remoteController.playOrPause();
+        }catch{
+          setStatus("cast fout");
+        }
         return;
       }
 
@@ -1799,7 +1811,15 @@
       closeAllDrops();
 
       if (castSession) {
-        setStatus("cast niet beschikbaar");
+        try{
+          const media = castSession.getMediaSession();
+          if (media) media.stop(null, ()=>{}, ()=>{});
+          castIsPlaying = false;
+          updatePlayIcon();
+          setStatus("cast gestopt");
+        }catch{
+          setStatus("cast fout");
+        }
         return;
       }
 
@@ -1848,7 +1868,7 @@
       if (!dragging) return;
       dragging = false;
       stepFeedback();
-      await loadCurrent(isPlaying);
+      await loadCurrent(isAnythingPlaying());
     });
 
     el.dialTrack.addEventListener("pointercancel", () => {
@@ -1930,9 +1950,13 @@
 
         await session.loadMedia(req);
 
+        castIsPlaying = true;
+        updatePlayIcon();
         el.btnCast.classList.add("on");
         setStatus("cast speelt");
       }catch{
+        castIsPlaying = false;
+        updatePlayIcon();
         setStatus("cast fout");
       }
     }
@@ -2038,7 +2062,7 @@
 
     /* ====== Periodieke info refresh als hij speelt ====== */
     setInterval(() => {
-      if (!isPlaying) return;
+      if (!isAnythingPlaying()) return;
       refreshInfo(false);
     }, 15000);
 
