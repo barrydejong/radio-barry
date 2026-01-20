@@ -1493,7 +1493,7 @@
           tile.addEventListener("click", async () => {
             idx = Math.max(0, stations.findIndex(x => x.f === s.f));
             renderHeader();
-            await loadCurrent(isPlaying);
+            await loadCurrent(true);
           });
 
           el.favList.appendChild(tile);
