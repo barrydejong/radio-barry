@@ -1983,15 +1983,21 @@
     const manifest = {
       name: "Radio Tuner Online",
       short_name: "Radio Tuner",
-      start_url: ".",
+      start_url: "/",
       display: "standalone",
       background_color: "#0b111a",
       theme_color: "#0b111a",
       description: "Luister naar je favoriete christelijke radiozenders en ontdek live streaminformatie.",
       icons: [
         {
-          src: "logos/pwa-logo.png",
+          src: "/logos/pwa-logo.png",
           sizes: "512x512",
+          type: "image/png",
+          purpose: "any maskable"
+        },
+        {
+          src: "/logos/pwa-logo.png",
+          sizes: "192x192",
           type: "image/png",
           purpose: "any maskable"
         }
@@ -2006,7 +2012,7 @@
 
     if ("serviceWorker" in navigator) {
       const swSource = `
-        const CACHE_NAME = "radio-barry-inline-v1";
+        const CACHE_NAME = "radio-barry-inline-v2";
         const ASSETS = [
           "./",
           "./logos/bright-fm.png",
@@ -2017,8 +2023,8 @@
           "./logos/pure-worship-radio.png",
           "./logos/radio-midland.png",
           "./logos/seven-fm.png",
-          "./logos/ucb-1.png",
-          "./logos/ucb-2.png"
+          "./logos/ucb1.png",
+          "./logos/ucb2.png"
         ];
 
         self.addEventListener("install", (event) => {
