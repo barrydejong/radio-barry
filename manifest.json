@@ -1,0 +1,17 @@
+{
+  "name": "Radio Tuner Online",
+  "short_name": "Radio Tuner",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0b111a",
+  "theme_color": "#0b111a",
+  "description": "Luister naar je favoriete christelijke radiozenders en ontdek live streaminformatie.",
+  "icons": [
+    {
+      "src": "logos/bright-fm.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
