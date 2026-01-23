@@ -1,4 +1,4 @@
-9<!doctype html>
+<!doctype html>
 <html lang="nl">
 <head>
   <meta charset="utf-8" />
@@ -6,7 +6,7 @@
   <meta name="color-scheme" content="dark" />
   <meta name="theme-color" content="#0b111a" />
   <title>Radio Tuner Online</title>
-  <link rel="manifest" href="manifest.json" />
+  <link id="appManifest" rel="manifest" />
   <link rel="apple-touch-icon" href="logos/bright-fm.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -147,6 +147,12 @@
       gap:10px;
       align-items:center;
       justify-content:space-between;
+    }
+    .stationRow.inCard{ margin:0 0 12px; }
+    .stationRow .favBtn{
+      width:46px;
+      height:46px;
+      border-radius:18px;
     }
     .stationBadge{
       flex:1;
@@ -731,31 +737,24 @@
     <div class="deck">
       <div class="card leftCard">
       <div class="hero">
-        <div class="freqRow">
-          <div class="freq" id="freqBig">98.9</div>
-          <div class="mhz"></div>)
-        </div>
-
-        <div class="stationRow">
-          <div class="stationBadge" title="Huidige zender">
-            <div class="logo" id="logoMain">
-              <img id="logoMainImg" alt="" />
-              <div class="logoText" id="logoMainText">FM</div>
-            </div>
-            <div class="stationMeta">
-              <div class="stationName" id="stationName">NPO Radio 1</div>
-              <div class="stationSub" id="stationSub">IJsselstein</div>
-            </div>
-          </div>
-
-          <button class="favBtn" id="favToggle" aria-label="Zender als favoriet" title="Favoriet" type="button">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
-              <path d="M12 17.3l-6.18 3.73 1.64-7.03L2 9.24l7.19-.61L12 2l2.81 6.63 7.19.61-5.46 4.76 1.64 7.03L12 17.3z"/>
-            </svg>
-          </button>
-        </div>
-
         <div class="dialCard">
+          <div class="stationRow inCard">
+            <div class="stationBadge" title="Huidige zender">
+              <div class="logo" id="logoMain">
+                <img id="logoMainImg" alt="" />
+                <div class="logoText" id="logoMainText">FM</div>
+              </div>
+              <div class="stationMeta">
+                <div class="stationName" id="stationName">NPO Radio 1</div>
+                <div class="stationSub" id="stationSub">IJsselstein</div>
+              </div>
+            </div>
+            <button class="favBtn" id="favToggle" aria-label="Zender als favoriet" title="Favoriet" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                <path d="M12 17.3l-6.18 3.73 1.64-7.03L2 9.24l7.19-.61L12 2l2.81 6.63 7.19.61-5.46 4.76 1.64 7.03L12 17.3z"/>
+              </svg>
+            </button>
+          </div>
           <div class="dialLogoWrap">
             <div class="dialLogo" id="dialLogo">
               <img id="dialLogoImg" alt="" />
@@ -955,7 +954,6 @@
 
     /* ====== Elements ====== */
     const el = {
-      freqBig: document.getElementById("freqBig"),
       stationName: document.getElementById("stationName"),
       stationSub: document.getElementById("stationSub"),
       statusText: document.getElementById("statusText"),
@@ -1240,7 +1238,7 @@
 
     function renderHeader(){
       const s = currentStation();
-      el.freqBig.textContent = String(s.n);
+      if (el.freqBig) el.freqBig.textContent = String(s.n);
       el.stationName.textContent = s.name;
       el.stationSub.textContent = s.place;
       setLogoForStation(s);
@@ -1979,9 +1977,98 @@
       if (isAvailable) initCast();
     };
 
+    const manifest = {
+      name: "Radio Tuner Online",
+      short_name: "Radio Tuner",
+      start_url: ".",
+      display: "standalone",
+      background_color: "#0b111a",
+      theme_color: "#0b111a",
+      description: "Luister naar je favoriete christelijke radiozenders en ontdek live streaminformatie.",
+      icons: [
+        {
+          src: "logos/bright-fm.png",
+          sizes: "512x512",
+          type: "image/png",
+          purpose: "any maskable"
+        }
+      ]
+    };
+
+    const manifestLink = document.getElementById("appManifest");
+    if (manifestLink) {
+      const manifestBlob = new Blob([JSON.stringify(manifest)], { type: "application/manifest+json" });
+      manifestLink.href = URL.createObjectURL(manifestBlob);
+    }
+
     if ("serviceWorker" in navigator) {
+      const swSource = `
+        const CACHE_NAME = "radio-barry-inline-v1";
+        const ASSETS = [
+          "./",
+          "./logos/bright-fm.png",
+          "./logos/christian-power-praise.png",
+          "./logos/god-radio.png",
+          "./logos/groot-nieuws-radio.png",
+          "./logos/pure-worship-radio.png",
+          "./logos/radio-midland.png",
+          "./logos/seven-fm.png",
+          "./logos/ucb-1.png",
+          "./logos/ucb-2.png"
+        ];
+
+        self.addEventListener("install", (event) => {
+          event.waitUntil(
+            caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+          );
+          self.skipWaiting();
+        });
+
+        self.addEventListener("activate", (event) => {
+          event.waitUntil(
+            caches.keys().then((keys) =>
+              Promise.all(
+                keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+              )
+            )
+          );
+          self.clients.claim();
+        });
+
+        self.addEventListener("fetch", (event) => {
+          if (event.request.method !== "GET") return;
+          if (event.request.mode === "navigate") {
+            event.respondWith(
+              fetch(event.request)
+                .then((response) => {
+                  const responseClone = response.clone();
+                  caches.open(CACHE_NAME).then((cache) => cache.put("./", responseClone));
+                  return response;
+                })
+                .catch(() => caches.match("./"))
+            );
+            return;
+          }
+
+          event.respondWith(
+            caches.match(event.request).then((cached) => {
+              if (cached) return cached;
+              return fetch(event.request)
+                .then((response) => {
+                  const responseClone = response.clone();
+                  caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
+                  return response;
+                })
+                .catch(() => caches.match("./"));
+            })
+          );
+        });
+      `;
+
+      const swBlob = new Blob([swSource], { type: "text/javascript" });
+      const swUrl = URL.createObjectURL(swBlob);
       window.addEventListener("load", () => {
-        navigator.serviceWorker.register("service-worker.js").catch(() => {});
+        navigator.serviceWorker.register(swUrl).catch(() => {});
       });
     }
 
