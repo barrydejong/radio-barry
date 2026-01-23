@@ -1,7 +1,6 @@
-const CACHE_NAME = "radio-barry-v1";
+const CACHE_NAME = "radio-barry-v2";
 const ASSETS = [
   "./",
-  "./index.html",
   "./manifest.json",
   "./logos/bright-fm.png",
   "./logos/christian-power-praise.png",
@@ -34,6 +33,19 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put("./", responseClone));
+          return response;
+        })
+        .catch(() => caches.match("./"))
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then((cached) => {
       if (cached) return cached;
@@ -43,7 +55,7 @@ self.addEventListener("fetch", (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
           return response;
         })
-        .catch(() => caches.match("./index.html"));
+        .catch(() => caches.match("./"));
     })
   );
 });
