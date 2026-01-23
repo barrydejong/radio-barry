@@ -6,6 +6,11 @@
   <meta name="color-scheme" content="dark" />
   <meta name="theme-color" content="#0b111a" />
   <title>Radio Tuner Online</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="logos/bright-fm.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Radio Tuner Online" />
 
   <style>
     :root{
@@ -764,9 +769,7 @@
               <div class="handle" id="handle"></div>
             </div>
 
-            <div class="marks" aria-hidden="true">
-              <div>1</div><div>2</div><div>3</div><div>4</div><div>5</div><div>6</div><div>7</div><div>8</div><div>9</div><div>10</div>
-            </div>
+            <div class="marks" id="dialMarks" aria-hidden="true"></div>
 
             <div class="dialHint">Tip: horizontaal slepen op de tuner kiest zender. Verticaal swipen blijft gewoon scrollen.</div>
           </div>
@@ -867,29 +870,27 @@
   
   <script>
   (() => {
+    /* ==== DATA ==== */
     const STREAM_PROXY_BASE = "/api/stream?url=";
-
-    /* ====== Instellingen ====== */
     const ICY_ENDPOINT = "/api/icy?url=";
     const RB_API = "https://de1.api.radio-browser.info/json";
     const CORS_TEXT_PROXY = "https://r.jina.ai/http";
 
-    /* ====== Zenders ====== */
     const stations = [
-      { f: 1, name: "Groot Nieuws Radio", place: "Online", query: "Groot Nieuws Radio", logo: "logos/groot-nieuws-radio.png",
+      { n: 1, name: "Groot Nieuws Radio", place: "Online", query: "Groot Nieuws Radio", logo: "logos/groot-nieuws-radio.png",
         fixedStreams: [
           { url: "https://playerservices.streamtheworld.com/api/livestream-redirect/GNR.mp3", bitrate: 128, codec: "MP3" },
           { url: "https://playerservices.streamtheworld.com/api/livestream-redirect/GNRAAC.aac", bitrate: 128, codec: "AAC" }
         ]
       },
-      { f: 2, name: "Groot Nieuws Radio Nonstop", place: "Online", query: "Groot Nieuws Radio Nonstop", logo: "logos/groot-nieuws-radio.png",
+      { n: 2, name: "Groot Nieuws Radio Nonstop", place: "Online", query: "Groot Nieuws Radio Nonstop", logo: "logos/groot-nieuws-radio.png",
         fixedStreams: [
           { url: "https://playerservices.streamtheworld.com/api/livestream-redirect/GNRNONSTOP.mp3", bitrate: 128, codec: "MP3" },
           { url: "https://playerservices.streamtheworld.com/api/livestream-redirect/GNRNONSTOPAAC.aac", bitrate: 128, codec: "AAC" }
         ]
       },
       {
-        f: 3,
+        n: 3,
         name: "Pure Worship Radio",
         place: "Online",
         query: "Pure Worship Radio",
@@ -899,7 +900,7 @@
         ]
       },
       {
-        f: 4,
+        n: 4,
         name: "GOD Radio",
         place: "Online",
         query: "GOD Radio",
@@ -908,30 +909,32 @@
           { url: "https://stream.wildfm.nl/GOD_Radio", bitrate: 128, codec: "MP3" }
         ]
       },
-      { f: 5, name: "Bright FM", place: "Online", query: "Bright FM", logo: "logos/bright-fm.png" },
-      { f: 6, name: "Christian Power Praise", place: "Online", query: "Christian Power Praise", logo: "logos/christian-power-praise.png" },
-      { f: 7, name: "NPO Radio 1", place: "IJsselstein", query: "NPO Radio 1", logo: "logos/npo-radio-1.png" },
-      { f: 8, name: "Seven FM", place: "Online", query: "Seven FM", logo: "logos/seven-fm.png" },
-      { f: 9, name: "UCB1", place: "Online", query: "UCB1", logo: "logos/ucb1.png" },
-      { f: 10, name: "UCB2", place: "Online", query: "UCB2", logo: "logos/ucb2.png" },
+      { n: 5, name: "Bright FM", place: "Online", query: "Bright FM", logo: "logos/bright-fm.png" },
+      { n: 6, name: "Christian Power Praise", place: "Online", query: "Christian Power Praise", logo: "logos/christian-power-praise.png" },
+      { n: 7, name: "NPO Radio 1", place: "IJsselstein", query: "NPO Radio 1", logo: "logos/npo-radio-1.png" },
+      { n: 8, name: "Seven FM", place: "Online", query: "Seven FM", logo: "logos/seven-fm.png" },
+      { n: 9, name: "UCB1", place: "Online", query: "UCB1", logo: "logos/ucb1.png" },
+      { n: 10, name: "UCB2", place: "Online", query: "UCB2", logo: "logos/ucb2.png" }
     ];
 
-    /* ====== State ====== */
-    const minF = 1, maxF = 10;
+    const stationNumbers = stations.map(s => s.n);
+    const minN = Math.min(...stationNumbers);
+    const maxN = Math.max(...stationNumbers);
+
     let idx = 0;
     let isPlaying = false;
 
     const resolved = new Map();
-    const resolving = new Set();
+    const resolving = new Map();
 
     const FAV_KEY = "fmScrollRadio:favorites";
     const getFavs = () => { try { return JSON.parse(localStorage.getItem(FAV_KEY) || "[]"); } catch { return []; } };
     const setFavs = (arr) => localStorage.setItem(FAV_KEY, JSON.stringify(arr));
-    const isFav = (f) => getFavs().includes(f);
-    const toggleFav = (f) => {
+    const isFav = (n) => getFavs().includes(n);
+    const toggleFav = (n) => {
       const favs = getFavs();
-      const i = favs.indexOf(f);
-      if (i >= 0) favs.splice(i, 1); else favs.push(f);
+      const i = favs.indexOf(n);
+      if (i >= 0) favs.splice(i, 1); else favs.push(n);
       setFavs(favs);
       renderLists();
       renderFavButton();
@@ -940,14 +943,14 @@
     const STREAM_KEY = "fmScrollRadio:streamChoice";
     const getStreamChoice = () => { try { return JSON.parse(localStorage.getItem(STREAM_KEY) || "{}"); } catch { return {}; } };
     const setStreamChoice = (obj) => localStorage.setItem(STREAM_KEY, JSON.stringify(obj));
-    function saveChoice(freq, url){
+    function saveChoice(n, url){
       const all = getStreamChoice();
-      all[String(freq)] = url;
+      all[String(n)] = url;
       setStreamChoice(all);
     }
-    function loadChoice(freq){
+    function loadChoice(n){
       const all = getStreamChoice();
-      return all[String(freq)] || "";
+      return all[String(n)] || "";
     }
 
     /* ====== Elements ====== */
@@ -969,6 +972,7 @@
       dialLogoText: document.getElementById("dialLogoText"),
 
       dialTrack: document.getElementById("dialTrack"),
+      dialMarks: document.getElementById("dialMarks"),
       handle: document.getElementById("handle"),
 
       btnPrev: document.getElementById("btnPrev"),
@@ -988,7 +992,16 @@
       search: document.getElementById("search"),
     };
 
-    /* ====== Audio playback ====== */
+    /* ====== Cast (Chromecast / Google Home) ====== */
+    let castSession = null;
+    let castIsPlaying = false;
+    let castReady = false;
+
+    let castContext = null;
+    let remotePlayer = null;
+    let remoteController = null;
+
+    /* ==== PLAYER ==== */
     const audio = new Audio();
     audio.preload = "auto";
     audio.autoplay = false;
@@ -1081,7 +1094,7 @@
       if (stuckFor < 2500) return;
 
       const s = currentStation();
-      const r = resolved.get(s.f);
+      const r = resolved.get(s.n);
       const raw = r ? (r.selectedUrl || r.bestUrl || "") : "";
       if (!raw) return;
 
@@ -1108,7 +1121,83 @@
       setTimeout(() => { recoverIfStuck(); }, 2700);
     });
 
-    /* ====== Helpers: logo fallback ====== */
+    async function loadCurrent(shouldPlay) {
+      const s = currentStation();
+      renderHeader();
+      await resolveStation(s);
+
+      const r = resolved.get(s.n);
+      const url = r ? (r.selectedUrl || r.bestUrl || "") : "";
+      if (url) setAudioSrc(url);
+
+      refreshInfo(true);
+
+      if (shouldPlay) {
+        try { await audio.play(); } catch {}
+      }
+    }
+
+    async function prevStation() {
+      idx = (idx - 1 + stations.length) % stations.length;
+      stepFeedback();
+      await loadCurrent(isPlaying);
+    }
+
+    async function nextStation() {
+      idx = (idx + 1) % stations.length;
+      stepFeedback();
+      await loadCurrent(isPlaying);
+    }
+
+    async function togglePlay() {
+      closeAllDrops();
+
+      if (castSession) {
+        setStatus("cast niet beschikbaar");
+        return;
+      }
+
+      if (isPlaying) {
+        audio.pause();
+        isPlaying = false;
+        updatePlayIcon();
+        setStatus("gepauzeerd");
+        return;
+      }
+
+      if (!audio.src) {
+        await loadCurrent(false);
+      }
+
+      try {
+        await audio.play();
+        isPlaying = true;
+        updatePlayIcon();
+        setStatus("speelt");
+      } catch {
+        setStatus("tik op play");
+      }
+    }
+
+    function stopPlayback() {
+      closeAllDrops();
+
+      if (castSession) {
+        setStatus("cast niet beschikbaar");
+        return;
+      }
+
+      try { audio.pause(); } catch {}
+      try { audio.currentTime = 0; } catch {}
+      isPlaying = false;
+      updatePlayIcon();
+      setStatus("gestopt");
+    }
+
+    /* ==== UI ==== */
+    function currentStation(){ return stations[idx]; }
+    function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
+
     function getInitials(name){
       const n = (name || "").trim();
       if (!n) return "FM";
@@ -1149,34 +1238,347 @@
       el.dialLogoImg.src = s.logo;
     }
 
-    /* ====== Dial mapping ====== */
-    function currentStation(){ return stations[idx]; }
-    function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
-
     function renderHeader(){
       const s = currentStation();
-      el.freqBig.textContent = String(s.f);
+      el.freqBig.textContent = String(s.n);
       el.stationName.textContent = s.name;
       el.stationSub.textContent = s.place;
       setLogoForStation(s);
 
       const w = el.dialTrack.clientWidth;
-      const t = (s.f - minF) / (maxF - minF);
+      const t = (s.n - minN) / (maxN - minN);
       const x = t * w;
       const half = 9;
       el.handle.style.left = `${clamp(x, half, w - half)}px`;
 
       renderFavButton();
+      updateQualityButton(s);
+    }
+
+    function renderDialMarks(){
+      if (!el.dialMarks) return;
+      el.dialMarks.innerHTML = "";
+      for (const s of stations){
+        const mark = document.createElement("div");
+        mark.textContent = String(s.n);
+        el.dialMarks.appendChild(mark);
+      }
     }
 
     function renderFavButton(){
       const s = currentStation();
-      const fav = isFav(s.f);
+      const fav = isFav(s.n);
       el.favToggle.classList.toggle("isFav", fav);
       el.favToggle.setAttribute("aria-pressed", fav ? "true" : "false");
     }
 
-    /* ====== Resolve streams ====== */
+    function pickQualityLabel(stream){
+      const br = stream.bitrate || 0;
+      if (br >= 256) return "Hoog";
+      if (br >= 160) return "Standaard";
+      if (br >= 96) return "Laag";
+      return "Extra laag";
+    }
+
+    const openDrops = new Set();
+
+    function closeAllDrops() {
+      for (const n of Array.from(openDrops)) closeDrop(n);
+    }
+
+    function openDrop(n) {
+      closeAllDrops();
+      openDrops.add(n);
+      const wrap = document.querySelector(`[data-wrap="${n}"]`);
+      if (!wrap) return;
+      const drop = wrap.querySelector(".qDrop");
+      if (drop) drop.classList.add("open");
+    }
+
+    function closeDrop(n) {
+      openDrops.delete(n);
+      const wrap = document.querySelector(`[data-wrap="${n}"]`);
+      if (!wrap) return;
+      const drop = wrap.querySelector(".qDrop");
+      if (drop) drop.classList.remove("open");
+    }
+
+    function streamLabel(st) {
+      const br = st.bitrate ? `${st.bitrate} kbps` : "";
+      const co = (st.codec || "").toUpperCase();
+      if (br && co) return `${br} ${co}`;
+      if (br) return br;
+      if (co) return co;
+      return "Stream";
+    }
+
+    function qualityButtonText(s) {
+      const r = resolved.get(s.n);
+      const streams = r ? (r.streams || []) : [];
+      const selected = r ? (r.selectedUrl || r.bestUrl || "") : "";
+      const selectedObj = selected ? streams.find(x => x.url === selected) : null;
+
+      if (streams.length) {
+        return selectedObj ? streamLabel(selectedObj) : "STREAMS";
+      }
+      return "STREAMS";
+    }
+
+    function updateQualityButton(s) {
+      const wrap = el.stationList.querySelector(`[data-wrap="${s.n}"]`);
+      if (!wrap) return;
+      const btn = wrap.querySelector(".qualityBtn");
+      if (!btn) return;
+      btn.textContent = qualityButtonText(s);
+    }
+
+    function renderLists() {
+      // Favorieten
+      const favs = getFavs();
+      el.favCount.textContent = String(favs.length);
+
+      el.favList.innerHTML = "";
+      if (!favs.length) {
+        el.favEmpty.style.display = "block";
+      } else {
+        el.favEmpty.style.display = "none";
+        for (const n of favs) {
+          const s = stations.find(x => x.n === n);
+          if (!s) continue;
+
+          const tile = document.createElement("button");
+          tile.type = "button";
+          tile.className = "favTile";
+          tile.title = s.name;
+
+          const img = document.createElement("img");
+          img.alt = "";
+          img.onerror = () => {
+            tile.innerHTML = "";
+            const t = document.createElement("div");
+            t.className = "logoText";
+            t.textContent = getInitials(s.name);
+            tile.appendChild(t);
+          };
+          img.src = s.logo || "";
+          tile.appendChild(img);
+
+          tile.addEventListener("click", async () => {
+            idx = Math.max(0, stations.findIndex(x => x.n === s.n));
+            renderHeader();
+            await loadCurrent(true);
+          });
+
+          el.favList.appendChild(tile);
+        }
+      }
+
+      // Zenderlijst (met zoek)
+      const q = (el.search.value || "").trim().toLowerCase();
+      const list = stations.filter(s => {
+        if (!q) return true;
+        return (s.name || "").toLowerCase().includes(q) || String(s.n).includes(q);
+      });
+
+      el.stationList.innerHTML = "";
+
+      for (const s of list) {
+        const wrap = document.createElement("div");
+        wrap.className = "rowWrap";
+        wrap.dataset.wrap = s.n;
+
+        const row = document.createElement("div");
+        row.className = "row rowTap";
+
+        const fBox = document.createElement("div");
+        fBox.className = "fBox";
+        fBox.textContent = String(s.n);
+        fBox.title = `Zender ${s.n}`;
+
+        const mid = document.createElement("div");
+        mid.className = "rowMid";
+
+        const rLogo = document.createElement("div");
+        rLogo.className = "rowLogo";
+        const rImg = document.createElement("img");
+        rImg.alt = "";
+        rImg.src = s.logo || "";
+        const rText = document.createElement("div");
+        rText.className = "logoText";
+        rText.textContent = getInitials(s.name);
+
+        rImg.onerror = () => {
+          rImg.style.display = "none";
+          rText.style.display = "flex";
+        };
+
+        rLogo.appendChild(rImg);
+        rLogo.appendChild(rText);
+
+        const nameBox = document.createElement("div");
+        nameBox.style.minWidth = "0";
+
+        const name = document.createElement("div");
+        name.style.fontWeight = "950";
+        name.style.whiteSpace = "nowrap";
+        name.style.overflow = "hidden";
+        name.style.textOverflow = "ellipsis";
+        name.textContent = s.name;
+
+        const sub = document.createElement("div");
+        sub.style.fontSize = "12px";
+        sub.style.color = "rgba(255,255,255,.55)";
+        sub.style.whiteSpace = "nowrap";
+        sub.style.overflow = "hidden";
+        sub.style.textOverflow = "ellipsis";
+        sub.textContent = s.place || "";
+
+        nameBox.appendChild(name);
+        nameBox.appendChild(sub);
+
+        mid.appendChild(rLogo);
+        mid.appendChild(nameBox);
+
+        const right = document.createElement("div");
+        right.className = "rowRight";
+
+        const qBtn = document.createElement("button");
+        qBtn.type = "button";
+        qBtn.className = "qualityBtn";
+        qBtn.textContent = qualityButtonText(s);
+
+        right.appendChild(qBtn);
+
+        row.appendChild(fBox);
+        row.appendChild(mid);
+        row.appendChild(right);
+
+        // Dropdown
+        const drop = document.createElement("div");
+        drop.className = "qDrop";
+
+        const head = document.createElement("div");
+        head.className = "qHead";
+        head.innerHTML = `<span>Kies stream</span>`;
+        const close = document.createElement("button");
+        close.type = "button";
+        close.className = "qClose";
+        close.textContent = "Sluit";
+        head.appendChild(close);
+
+        const qList = document.createElement("div");
+        qList.className = "qList";
+
+        drop.appendChild(head);
+        drop.appendChild(qList);
+
+        wrap.appendChild(row);
+        wrap.appendChild(drop);
+        el.stationList.appendChild(wrap);
+
+        // Resolve streams als we ze nog niet hebben
+        resolveStation(s);
+
+        function rebuildDrop() {
+          const rr = resolved.get(s.n);
+          const arr = rr ? (rr.streams || []) : [];
+          const picked = rr ? (rr.selectedUrl || rr.bestUrl || "") : "";
+
+          qList.innerHTML = "";
+          if (!arr.length) {
+            const it = document.createElement("div");
+            it.className = "qItem";
+            it.style.cursor = "default";
+            it.innerHTML = `<div class="qItemTop"><span>Geen streams gevonden</span><span class="qTag">—</span></div>`;
+            qList.appendChild(it);
+            return;
+          }
+
+          for (const st of arr.slice(0, 10)) {
+            const it = document.createElement("div");
+            it.className = "qItem" + (st.url === picked ? " sel" : "");
+
+            const tag = streamLabel(st);
+            it.innerHTML = `
+              <div class="qItemTop">
+                <span>${pickQualityLabel(st)}</span>
+                <span class="qTag">${tag}</span>
+              </div>
+              <div class="qUrlRow">
+                <div class="qUrl">${st.url}</div>
+                <button class="qCopy" type="button">Kopieer</button>
+              </div>
+            `;
+
+            // Klik op item = selecteren + (indien playing) afspelen
+            it.addEventListener("click", async () => {
+              const rr2 = resolved.get(s.n);
+              if (!rr2) return;
+
+              rr2.selectedUrl = st.url;
+              saveChoice(s.n, st.url);
+
+              // Als dit de huidige station is: meteen toepassen
+              if (currentStation().n === s.n) {
+                setAudioSrc(st.url);
+                if (isPlaying) {
+                  try { await audio.play(); } catch {}
+                }
+                refreshInfo(true);
+              }
+
+              // Labels updaten
+              qBtn.textContent = streamLabel(st);
+              rebuildDrop();
+              closeDrop(s.n);
+            });
+
+            // Copy knop
+            const copyBtn = it.querySelector(".qCopy");
+            copyBtn.addEventListener("click", async (e) => {
+              e.stopPropagation();
+              const ok = await copyToClipboard(st.url);
+              copyBtn.textContent = ok ? "Gekopieerd" : "Mislukt";
+              setTimeout(() => { copyBtn.textContent = "Kopieer"; }, 900);
+            });
+
+            qList.appendChild(it);
+          }
+        }
+
+        // Button om dropdown te openen
+        qBtn.addEventListener("click", async (e) => {
+          e.stopPropagation();
+          await resolveStation(s);
+          rebuildDrop();
+          openDrop(s.n);
+        });
+
+        // Tik op logo = zender kiezen + meteen afspelen
+        rLogo.addEventListener("click", async (e) => {
+          e.stopPropagation();
+          closeAllDrops();
+          idx = Math.max(0, stations.findIndex(x => x.n === s.n));
+          renderHeader();
+          await loadCurrent(true);
+        });
+
+        close.addEventListener("click", (e) => {
+          e.stopPropagation();
+          closeDrop(s.n);
+        });
+
+        // Klik op rij = zender kiezen + laden
+        row.addEventListener("click", async () => {
+          closeAllDrops();
+          idx = Math.max(0, stations.findIndex(x => x.n === s.n));
+          renderHeader();
+          await loadCurrent(isPlaying);
+        });
+      }
+    }
+
+    /* ==== SERVICES ==== */
     function norm(t){ return (t||"").toLowerCase().replace(/[^a-z0-9]/g,""); }
 
     function uniqStreams(arr){
@@ -1192,10 +1594,10 @@
     }
 
     async function resolveStation(s){
-      if (resolved.has(s.f) || resolving.has(s.f)) return;
-      resolving.add(s.f);
+      if (resolved.has(s.n)) return;
+      if (resolving.has(s.n)) return resolving.get(s.n);
 
-      try{
+      const work = (async () => {
         if (Array.isArray(s.fixedStreams) && s.fixedStreams.length){
           const streams = s.fixedStreams.map(st => ({
             url: st.url,
@@ -1203,20 +1605,20 @@
             codec: (st.codec||"").toUpperCase(),
             score: 999
           }));
-          const saved = loadChoice(s.f);
+          const saved = loadChoice(s.n);
           const selected = saved && streams.find(x => x.url === saved) ? saved : streams[0].url;
 
-          resolved.set(s.f, {
+          resolved.set(s.n, {
             streams,
             bestUrl: streams[0].url,
             selectedUrl: selected
           });
 
-          if (currentStation().f === s.f){
+          if (currentStation().n === s.n){
             applyResolvedToAudio(s);
             refreshInfo(true);
           }
-          renderLists();
+          updateQualityButton(s);
           return;
         }
 
@@ -1257,42 +1659,38 @@
         }));
 
         const best = streams.slice().sort((a,b)=>(b.bitrate||0)-(a.bitrate||0))[0] || null;
-        const saved = loadChoice(s.f);
+        const saved = loadChoice(s.n);
         const selected = saved && streams.find(x => x.url === saved) ? saved : (best ? best.url : "");
 
-        resolved.set(s.f, {
+        resolved.set(s.n, {
           streams,
           bestUrl: best ? best.url : "",
           selectedUrl: selected
         });
 
-        if (currentStation().f === s.f){
+        if (currentStation().n === s.n){
           applyResolvedToAudio(s);
           refreshInfo(true);
         }
-        renderLists();
+        updateQualityButton(s);
+      })();
+
+      resolving.set(s.n, work);
+      try {
+        await work;
       } finally {
-        resolving.delete(s.f);
+        resolving.delete(s.n);
       }
     }
 
     function applyResolvedToAudio(s){
-      const r = resolved.get(s.f);
+      const r = resolved.get(s.n);
       if (!r) return;
       const url = r.selectedUrl || r.bestUrl || "";
       if (!url) return;
       setAudioSrc(url);
     }
 
-    function pickQualityLabel(stream){
-      const br = stream.bitrate || 0;
-      if (br >= 256) return "Hoog";
-      if (br >= 160) return "Standaard";
-      if (br >= 96) return "Laag";
-      return "Extra laag";
-    }
-
-    /* ====== ICY info ====== */
     let infoReqId = 0;
 
     function decodeHtmlEntities(s){
@@ -1334,7 +1732,7 @@
       const myId = ++infoReqId;
 
       const s = currentStation();
-      const r = resolved.get(s.f);
+      const r = resolved.get(s.n);
       const streamUrl = r ? (r.selectedUrl || r.bestUrl) : "";
 
       if (!streamUrl){
@@ -1412,7 +1810,6 @@
       return { programma: "", presentator: "", track: t };
     }
 
-    /* ====== Clipboard ====== */
     async function copyToClipboard(text) {
       try {
         await navigator.clipboard.writeText(text);
@@ -1434,443 +1831,6 @@
         }
       }
     }
-
-    /* ====== UI: Quality dropdown per station ====== */
-    const openDrops = new Set();
-
-    function closeAllDrops() {
-      for (const f of Array.from(openDrops)) closeDrop(f);
-    }
-
-    function openDrop(freq) {
-      closeAllDrops();
-      openDrops.add(freq);
-      const wrap = document.querySelector(`[data-wrap="${freq}"]`);
-      if (!wrap) return;
-      const drop = wrap.querySelector(".qDrop");
-      if (drop) drop.classList.add("open");
-    }
-
-    function closeDrop(freq) {
-      openDrops.delete(freq);
-      const wrap = document.querySelector(`[data-wrap="${freq}"]`);
-      if (!wrap) return;
-      const drop = wrap.querySelector(".qDrop");
-      if (drop) drop.classList.remove("open");
-    }
-
-    function streamLabel(st) {
-      const br = st.bitrate ? `${st.bitrate} kbps` : "";
-      const co = (st.codec || "").toUpperCase();
-      if (br && co) return `${br} ${co}`;
-      if (br) return br;
-      if (co) return co;
-      return "Stream";
-    }
-
-    /* ====== Render lists ====== */
-    function renderLists() {
-      // Favorieten
-      const favs = getFavs();
-      el.favCount.textContent = String(favs.length);
-
-      el.favList.innerHTML = "";
-      if (!favs.length) {
-        el.favEmpty.style.display = "block";
-      } else {
-        el.favEmpty.style.display = "none";
-        for (const f of favs) {
-          const s = stations.find(x => x.f === f);
-          if (!s) continue;
-
-          const tile = document.createElement("button");
-          tile.type = "button";
-          tile.className = "favTile";
-          tile.title = s.name;
-
-          const img = document.createElement("img");
-          img.alt = "";
-          img.onerror = () => {
-            tile.innerHTML = "";
-            const t = document.createElement("div");
-            t.className = "logoText";
-            t.textContent = getInitials(s.name);
-            tile.appendChild(t);
-          };
-          img.src = s.logo || "";
-          tile.appendChild(img);
-
-          tile.addEventListener("click", async () => {
-            idx = Math.max(0, stations.findIndex(x => x.f === s.f));
-            renderHeader();
-            await loadCurrent(true);
-          });
-
-          el.favList.appendChild(tile);
-        }
-      }
-
-      // Zenderlijst (met zoek)
-      const q = (el.search.value || "").trim().toLowerCase();
-      const list = stations.filter(s => {
-        if (!q) return true;
-        return (s.name || "").toLowerCase().includes(q) || String(s.f).includes(q);
-      });
-
-      el.stationList.innerHTML = "";
-
-      for (const s of list) {
-        const wrap = document.createElement("div");
-        wrap.className = "rowWrap";
-        wrap.dataset.wrap = s.f;
-
-        const row = document.createElement("div");
-        row.className = "row rowTap";
-
-        const fBox = document.createElement("div");
-        fBox.className = "fBox";
-        const n = stations.findIndex(x => x.f === s.f) + 1;
-        fBox.textContent = String(n);
-        fBox.title = `Zender ${s.f}`;
-
-        const mid = document.createElement("div");
-        mid.className = "rowMid";
-
-        const rLogo = document.createElement("div");
-        rLogo.className = "rowLogo";
-        const rImg = document.createElement("img");
-        rImg.alt = "";
-        rImg.src = s.logo || "";
-        const rText = document.createElement("div");
-        rText.className = "logoText";
-        rText.textContent = getInitials(s.name);
-
-        rImg.onerror = () => {
-          rImg.style.display = "none";
-          rText.style.display = "flex";
-        };
-
-        rLogo.appendChild(rImg);
-        rLogo.appendChild(rText);
-
-        const nameBox = document.createElement("div");
-        nameBox.style.minWidth = "0";
-
-        const name = document.createElement("div");
-        name.style.fontWeight = "950";
-        name.style.whiteSpace = "nowrap";
-        name.style.overflow = "hidden";
-        name.style.textOverflow = "ellipsis";
-        name.textContent = s.name;
-
-        const sub = document.createElement("div");
-        sub.style.fontSize = "12px";
-        sub.style.color = "rgba(255,255,255,.55)";
-        sub.style.whiteSpace = "nowrap";
-        sub.style.overflow = "hidden";
-        sub.style.textOverflow = "ellipsis";
-        sub.textContent = s.place || "";
-
-        nameBox.appendChild(name);
-        nameBox.appendChild(sub);
-
-        mid.appendChild(rLogo);
-        mid.appendChild(nameBox);
-
-        const right = document.createElement("div");
-        right.className = "rowRight";
-
-        const r = resolved.get(s.f);
-        const streams = r ? (r.streams || []) : [];
-        const selected = r ? (r.selectedUrl || r.bestUrl || "") : "";
-        const selectedObj = selected ? streams.find(x => x.url === selected) : null;
-
-        const qBtn = document.createElement("button");
-        qBtn.type = "button";
-        qBtn.className = "qualityBtn";
-
-        if (streams.length) {
-          qBtn.textContent = selectedObj ? streamLabel(selectedObj) : "STREAMS";
-        } else {
-          qBtn.textContent = "STREAMS";
-        }
-
-        right.appendChild(qBtn);
-
-        row.appendChild(fBox);
-        row.appendChild(mid);
-        row.appendChild(right);
-
-        // Dropdown
-        const drop = document.createElement("div");
-        drop.className = "qDrop";
-
-        const head = document.createElement("div");
-        head.className = "qHead";
-        head.innerHTML = `<span>Kies stream</span>`;
-        const close = document.createElement("button");
-        close.type = "button";
-        close.className = "qClose";
-        close.textContent = "Sluit";
-        head.appendChild(close);
-
-        const qList = document.createElement("div");
-        qList.className = "qList";
-
-        drop.appendChild(head);
-        drop.appendChild(qList);
-
-        wrap.appendChild(row);
-        wrap.appendChild(drop);
-        el.stationList.appendChild(wrap);
-
-        // Resolve streams als we ze nog niet hebben
-        resolveStation(s);
-
-        function rebuildDrop() {
-          const rr = resolved.get(s.f);
-          const arr = rr ? (rr.streams || []) : [];
-          const picked = rr ? (rr.selectedUrl || rr.bestUrl || "") : "";
-
-          qList.innerHTML = "";
-          if (!arr.length) {
-            const it = document.createElement("div");
-            it.className = "qItem";
-            it.style.cursor = "default";
-            it.innerHTML = `<div class="qItemTop"><span>Geen streams gevonden</span><span class="qTag">—</span></div>`;
-            qList.appendChild(it);
-            return;
-          }
-
-          for (const st of arr.slice(0, 10)) {
-            const it = document.createElement("div");
-            it.className = "qItem" + (st.url === picked ? " sel" : "");
-
-            const tag = streamLabel(st);
-            it.innerHTML = `
-              <div class="qItemTop">
-                <span>${pickQualityLabel(st)}</span>
-                <span class="qTag">${tag}</span>
-              </div>
-              <div class="qUrlRow">
-                <div class="qUrl">${st.url}</div>
-                <button class="qCopy" type="button">Kopieer</button>
-              </div>
-            `;
-
-            // Klik op item = selecteren + (indien playing) afspelen
-            it.addEventListener("click", async () => {
-              const rr2 = resolved.get(s.f);
-              if (!rr2) return;
-
-              rr2.selectedUrl = st.url;
-              saveChoice(s.f, st.url);
-
-              // Als dit de huidige station is: meteen toepassen
-              if (currentStation().f === s.f) {
-                setAudioSrc(st.url);
-                if (isPlaying) {
-                  try { await audio.play(); } catch {}
-                }
-                refreshInfo(true);
-              }
-
-              // Labels updaten
-              qBtn.textContent = streamLabel(st);
-              rebuildDrop();
-              closeDrop(s.f);
-            });
-
-            // Copy knop
-            const copyBtn = it.querySelector(".qCopy");
-            copyBtn.addEventListener("click", async (e) => {
-              e.stopPropagation();
-              const ok = await copyToClipboard(st.url);
-              copyBtn.textContent = ok ? "Gekopieerd" : "Mislukt";
-              setTimeout(() => { copyBtn.textContent = "Kopieer"; }, 900);
-            });
-
-            qList.appendChild(it);
-          }
-        }
-
-        // Button om dropdown te openen
-        qBtn.addEventListener("click", (e) => {
-          e.stopPropagation();
-          const rr = resolved.get(s.f);
-          if (!rr) return;
-
-          rebuildDrop();
-          openDrop(s.f);
-        });
-
-        // Tik op logo = zender kiezen + meteen afspelen
-        rLogo.addEventListener("click", async (e) => {
-          e.stopPropagation();
-          closeAllDrops();
-          idx = Math.max(0, stations.findIndex(x => x.f === s.f));
-          renderHeader();
-          await loadCurrent(true);
-        });
-
-        close.addEventListener("click", (e) => {
-          e.stopPropagation();
-          closeDrop(s.f);
-        });
-
-        // Klik op rij = zender kiezen + laden
-        row.addEventListener("click", async () => {
-          closeAllDrops();
-          idx = Math.max(0, stations.findIndex(x => x.f === s.f));
-          renderHeader();
-          await loadCurrent(isPlaying);
-        });
-
-        // Als streams later binnenkomen: update knop
-        const obs = setInterval(() => {
-          const rr = resolved.get(s.f);
-          if (!rr) return;
-
-          const arr = rr.streams || [];
-          if (arr.length) {
-            const picked = rr.selectedUrl || rr.bestUrl || "";
-            const pickedObj = picked ? arr.find(x => x.url === picked) : null;
-            qBtn.textContent = pickedObj ? streamLabel(pickedObj) : "STREAMS";
-            clearInterval(obs);
-          }
-        }, 250);
-      }
-    }
-
-    /* ====== Load current station ====== */
-    async function loadCurrent(shouldPlay) {
-      const s = currentStation();
-      renderHeader();
-      await resolveStation(s);
-
-      const r = resolved.get(s.f);
-      const url = r ? (r.selectedUrl || r.bestUrl || "") : "";
-      if (url) setAudioSrc(url);
-
-      refreshInfo(true);
-
-      if (shouldPlay) {
-        try { await audio.play(); } catch {}
-      }
-    }
-
-    /* ====== Prev/Next ====== */
-    async function prevStation() {
-      idx = (idx - 1 + stations.length) % stations.length;
-      stepFeedback();
-      await loadCurrent(isPlaying);
-    }
-
-    async function nextStation() {
-      idx = (idx + 1) % stations.length;
-      stepFeedback();
-      await loadCurrent(isPlaying);
-    }
-
-    /* ====== Play/Pause/Stop ====== */
-    async function togglePlay() {
-      closeAllDrops();
-
-      if (castSession) {
-        setStatus("cast niet beschikbaar");
-        return;
-      }
-
-      if (isPlaying) {
-        audio.pause();
-        isPlaying = false;
-        updatePlayIcon();
-        setStatus("gepauzeerd");
-        return;
-      }
-
-      if (!audio.src) {
-        await loadCurrent(false);
-      }
-
-      try {
-        await audio.play();
-        isPlaying = true;
-        updatePlayIcon();
-        setStatus("speelt");
-      } catch {
-        setStatus("tik op play");
-      }
-    }
-
-    function stopPlayback() {
-      closeAllDrops();
-
-      if (castSession) {
-        setStatus("cast niet beschikbaar");
-        return;
-      }
-
-      try { audio.pause(); } catch {}
-      try { audio.currentTime = 0; } catch {}
-      isPlaying = false;
-      updatePlayIcon();
-      setStatus("gestopt");
-    }
-
-    /* ====== Dial dragging ====== */
-    let dragging = false;
-
-    function freqFromX(x, width) {
-      const t = clamp(x / width, 0, 1);
-      const f = minF + (maxF - minF) * t;
-
-      // snap naar dichtstbijzijnde station
-      let bestI = 0;
-      let bestD = Infinity;
-      for (let i = 0; i < stations.length; i++) {
-        const d = Math.abs(stations[i].f - f);
-        if (d < bestD) { bestD = d; bestI = i; }
-      }
-      return bestI;
-    }
-
-    el.dialTrack.addEventListener("pointerdown", (e) => {
-      dragging = true;
-      el.dialTrack.setPointerCapture(e.pointerId);
-    });
-
-    el.dialTrack.addEventListener("pointermove", async (e) => {
-      if (!dragging) return;
-      const rect = el.dialTrack.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const newIdx = freqFromX(x, rect.width);
-
-      if (newIdx !== idx) {
-        idx = newIdx;
-        renderHeader();
-      }
-    });
-
-    el.dialTrack.addEventListener("pointerup", async () => {
-      if (!dragging) return;
-      dragging = false;
-      stepFeedback();
-      await loadCurrent(isPlaying);
-    });
-
-    el.dialTrack.addEventListener("pointercancel", () => {
-      dragging = false;
-    });
-
-    /* ====== Cast (Chromecast / Google Home) ====== */
-    let castSession = null;
-    let castIsPlaying = false;
-    let castReady = false;
-
-    let castContext = null;
-    let remotePlayer = null;
-    let remoteController = null;
 
     function absUrl(u){
       try{ return new URL(u, location.href).href; }catch{ return u; }
@@ -1905,7 +1865,7 @@
       const s = currentStation();
       await resolveStation(s);
 
-      const r = resolved.get(s.f);
+      const r = resolved.get(s.n);
       const pickedUrl = r ? (r.selectedUrl || r.bestUrl || "") : "";
       if (!pickedUrl){
         setStatus("geen stream");
@@ -2019,16 +1979,66 @@
       if (isAvailable) initCast();
     };
 
-    el.btnCast.addEventListener("click", startOrStopCast);
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("service-worker.js").catch(() => {});
+      });
+    }
+
+    /* ====== Dial dragging ====== */
+    let dragging = false;
+
+    function indexFromX(x, width) {
+      const t = clamp(x / width, 0, 1);
+      const n = minN + (maxN - minN) * t;
+
+      // snap naar dichtstbijzijnde station
+      let bestI = 0;
+      let bestD = Infinity;
+      for (let i = 0; i < stations.length; i++) {
+        const d = Math.abs(stations[i].n - n);
+        if (d < bestD) { bestD = d; bestI = i; }
+      }
+      return bestI;
+    }
+
+    el.dialTrack.addEventListener("pointerdown", (e) => {
+      dragging = true;
+      el.dialTrack.setPointerCapture(e.pointerId);
+    });
+
+    el.dialTrack.addEventListener("pointermove", async (e) => {
+      if (!dragging) return;
+      const rect = el.dialTrack.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const newIdx = indexFromX(x, rect.width);
+
+      if (newIdx !== idx) {
+        idx = newIdx;
+        renderHeader();
+      }
+    });
+
+    el.dialTrack.addEventListener("pointerup", async () => {
+      if (!dragging) return;
+      dragging = false;
+      stepFeedback();
+      await loadCurrent(isPlaying);
+    });
+
+    el.dialTrack.addEventListener("pointercancel", () => {
+      dragging = false;
+    });
 
     /* ====== Buttons ====== */
     el.btnPrev.addEventListener("click", prevStation);
     el.btnNext.addEventListener("click", nextStation);
     el.btnPlayPause.addEventListener("click", togglePlay);
     el.btnStop.addEventListener("click", stopPlayback);
+    el.btnCast.addEventListener("click", startOrStopCast);
 
     el.favToggle.addEventListener("click", () => {
-      toggleFav(currentStation().f);
+      toggleFav(currentStation().n);
     });
 
     el.btnRefreshInfo.addEventListener("click", async () => {
@@ -2052,6 +2062,7 @@
 
     /* ====== Init ====== */
     renderHeader();
+    renderDialMarks();
     renderLists();
     loadCurrent(false);
     updatePlayIcon();
