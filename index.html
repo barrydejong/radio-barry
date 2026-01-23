@@ -881,8 +881,9 @@
     const stations = [
       { n: 1, name: "Groot Nieuws Radio", place: "Online", query: "Groot Nieuws Radio", logo: "logos/groot-nieuws-radio.png",
         fixedStreams: [
-          { url: "https://playerservices.streamtheworld.com/api/livestream-redirect/GNR.mp3", bitrate: 128, codec: "MP3" },
-          { url: "https://playerservices.streamtheworld.com/api/livestream-redirect/GNRAAC.aac", bitrate: 128, codec: "AAC" }
+          { url: "https://19983.live.streamtheworld.com/GNRAAC.aac", bitrate: 128, codec: "AAC" },
+          { url: "https://playerservices.streamtheworld.com/api/livestream-redirect/GNRAAC.aac", bitrate: 128, codec: "AAC" },
+          { url: "https://playerservices.streamtheworld.com/api/livestream-redirect/GNR.mp3", bitrate: 128, codec: "MP3" }
         ]
       },
       { n: 2, name: "Groot Nieuws Radio Nonstop", place: "Online", query: "Groot Nieuws Radio Nonstop", logo: "logos/groot-nieuws-radio.png",
@@ -915,7 +916,12 @@
       { n: 6, name: "Christian Power Praise", place: "Online", query: "Christian Power Praise", logo: "logos/christian-power-praise.png" },
       { n: 7, name: "NPO Radio 1", place: "IJsselstein", query: "NPO Radio 1", logo: "logos/npo-radio-1.png" },
       { n: 8, name: "Seven FM", place: "Online", query: "Seven FM", logo: "logos/seven-fm.png" },
-      { n: 9, name: "UCB1", place: "Online", query: "UCB1", logo: "logos/ucb1.png" },
+      { n: 9, name: "UCB1", place: "Online", query: "UCB1", logo: "logos/ucb1.png",
+        fixedStreams: [
+          { url: "https://listen-ucb.sharp-stream.com/55_ucb_1_128_mp3", bitrate: 128, codec: "MP3" },
+          { url: "https://listen-ucb.sharp-stream.com/55_ucb_1_48_aac", bitrate: 48, codec: "AAC" }
+        ]
+      },
       { n: 10, name: "UCB2", place: "Online", query: "UCB2", logo: "logos/ucb2.png" }
     ];
 
