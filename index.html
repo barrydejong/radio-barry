@@ -6,7 +6,7 @@
   <meta name="color-scheme" content="dark" />
   <meta name="theme-color" content="#0b111a" />
   <title>Radio Tuner Online</title>
-  <link id="appManifest" rel="manifest" />
+  <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="logos/pwa-logo.png" />
   <link rel="icon" href="logos/pwa-logo.png" type="image/png" />
   <link rel="icon" sizes="192x192" href="logos/pwa-logo.png" />
@@ -1980,41 +1980,14 @@
       if (isAvailable) initCast();
     };
 
-    const manifest = {
-      name: "Radio Tuner Online",
-      short_name: "Radio Tuner",
-      start_url: "/",
-      display: "standalone",
-      background_color: "#0b111a",
-      theme_color: "#0b111a",
-      description: "Luister naar je favoriete christelijke radiozenders en ontdek live streaminformatie.",
-      icons: [
-        {
-          src: "/logos/pwa-logo.png",
-          sizes: "512x512",
-          type: "image/png",
-          purpose: "any maskable"
-        },
-        {
-          src: "/logos/pwa-logo.png",
-          sizes: "192x192",
-          type: "image/png",
-          purpose: "any maskable"
-        }
-      ]
-    };
-
-    const manifestLink = document.getElementById("appManifest");
-    if (manifestLink) {
-      const manifestBlob = new Blob([JSON.stringify(manifest)], { type: "application/manifest+json" });
-      manifestLink.href = URL.createObjectURL(manifestBlob);
-    }
+    // Manifest wordt nu geladen via manifest.webmanifest (static file), geen JS meer nodig.
 
     if ("serviceWorker" in navigator) {
       const swSource = `
         const CACHE_NAME = "radio-barry-inline-v2";
         const ASSETS = [
           "./",
+          "./manifest.webmanifest",
           "./logos/bright-fm.png",
           "./logos/pwa-logo.png",
           "./logos/christian-power-praise.png",

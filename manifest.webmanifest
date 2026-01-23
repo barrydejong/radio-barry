@@ -1,0 +1,14 @@
+{
+  "name": "Radio Tuner Online",
+  "short_name": "Radio Tuner",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b111a",
+  "theme_color": "#0b111a",
+  "description": "Luister naar je favoriete christelijke radiozenders en ontdek live streaminformatie.",
+  "icons": [
+    { "src": "logos/pwa-logo.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "logos/pwa-logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
