@@ -6,7 +6,7 @@
   <meta name="color-scheme" content="dark" />
   <meta name="theme-color" content="#0b111a" />
   <title>Radio Tuner Online</title>
-  <link rel="manifest" href="manifest.json" />
+  <link id="appManifest" rel="manifest" />
   <link rel="apple-touch-icon" href="logos/bright-fm.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -1977,9 +1977,98 @@
       if (isAvailable) initCast();
     };
 
+    const manifest = {
+      name: "Radio Tuner Online",
+      short_name: "Radio Tuner",
+      start_url: ".",
+      display: "standalone",
+      background_color: "#0b111a",
+      theme_color: "#0b111a",
+      description: "Luister naar je favoriete christelijke radiozenders en ontdek live streaminformatie.",
+      icons: [
+        {
+          src: "logos/bright-fm.png",
+          sizes: "512x512",
+          type: "image/png",
+          purpose: "any maskable"
+        }
+      ]
+    };
+
+    const manifestLink = document.getElementById("appManifest");
+    if (manifestLink) {
+      const manifestBlob = new Blob([JSON.stringify(manifest)], { type: "application/manifest+json" });
+      manifestLink.href = URL.createObjectURL(manifestBlob);
+    }
+
     if ("serviceWorker" in navigator) {
+      const swSource = `
+        const CACHE_NAME = "radio-barry-inline-v1";
+        const ASSETS = [
+          "./",
+          "./logos/bright-fm.png",
+          "./logos/christian-power-praise.png",
+          "./logos/god-radio.png",
+          "./logos/groot-nieuws-radio.png",
+          "./logos/pure-worship-radio.png",
+          "./logos/radio-midland.png",
+          "./logos/seven-fm.png",
+          "./logos/ucb-1.png",
+          "./logos/ucb-2.png"
+        ];
+
+        self.addEventListener("install", (event) => {
+          event.waitUntil(
+            caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+          );
+          self.skipWaiting();
+        });
+
+        self.addEventListener("activate", (event) => {
+          event.waitUntil(
+            caches.keys().then((keys) =>
+              Promise.all(
+                keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+              )
+            )
+          );
+          self.clients.claim();
+        });
+
+        self.addEventListener("fetch", (event) => {
+          if (event.request.method !== "GET") return;
+          if (event.request.mode === "navigate") {
+            event.respondWith(
+              fetch(event.request)
+                .then((response) => {
+                  const responseClone = response.clone();
+                  caches.open(CACHE_NAME).then((cache) => cache.put("./", responseClone));
+                  return response;
+                })
+                .catch(() => caches.match("./"))
+            );
+            return;
+          }
+
+          event.respondWith(
+            caches.match(event.request).then((cached) => {
+              if (cached) return cached;
+              return fetch(event.request)
+                .then((response) => {
+                  const responseClone = response.clone();
+                  caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
+                  return response;
+                })
+                .catch(() => caches.match("./"));
+            })
+          );
+        });
+      `;
+
+      const swBlob = new Blob([swSource], { type: "text/javascript" });
+      const swUrl = URL.createObjectURL(swBlob);
       window.addEventListener("load", () => {
-        navigator.serviceWorker.register("service-worker.js").catch(() => {});
+        navigator.serviceWorker.register(swUrl).catch(() => {});
       });
     }
 
